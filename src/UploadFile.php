@@ -22,9 +22,9 @@ class UploadFile
 
     /**
      * 上传
-     * @param $file 文件路劲
+     * @param string $file 文件路劲
      * @param string $newFileName  新文件名
-     * @return bool
+     * @return bool|array
      */
     public function upload($file,$newFileName = null)
     {
@@ -43,6 +43,35 @@ class UploadFile
             return false;
        }
         return $result;
+    }
+
+    /**
+     * 上传对象
+     * @param string $fileName  文件名称
+     * @param string|array|object $data 上传数据
+     * @param string $mime 文件类型mimeType
+     * @return bool|array
+     */
+    public function put($fileName,$data,$mime = 'application/octet-stream')
+    {
+        if (empty($fileName)){
+            $this->errorMsg = '文件名称不能为空';
+            return false;
+        }
+
+        if (empty($data)) {
+            $this->errorMsg = '数据不能为空！';
+        }
+
+        $putFile = new Upload();
+        $result = $putFile->put($this->Auth()->uploadToken(),$fileName,$data,$mime);
+
+        if ($result == false) {
+            $this->errorMsg = $result;
+            return false;
+        }
+        return $result;
+
     }
 
     /**

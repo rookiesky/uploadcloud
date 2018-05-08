@@ -22,4 +22,7 @@ $upload->getPrefixFile('前缀名称');
 //批量删除文件
 $upload->buiBatchDelete(array());
 
+//上传对象
+$upload->put('文件重命名',文件数据,'文件类型');
+
 ````
