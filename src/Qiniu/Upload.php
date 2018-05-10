@@ -1,56 +1,119 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: rookie
+ * Url : PTP6.Com
+ * Date: 2018/5/10
+ * Time: 19:26
+ */
 
 namespace Rookie\Cloud\Qiniu;
 
 
+use Qiniu\Config;
+use Qiniu\Storage\BucketManager;
 use Qiniu\Storage\UploadManager;
+use Rookie\Cloud\UploadInterface;
 
-class Upload
+class Upload implements UploadInterface
 {
 
-    public $errorMsg;  //错误信息
+    private $accesskey = null;
+    private $secretkey = null;
+    private $bucket = null;
 
-    /**
-     * 上传文件
-     * @param string $token 上传令牌
-     * @param string $file 文件路径
-     * @param string $cloudFileName 重命名
-     * @return bool|array
-     */
-    public function uploadFile($token,$file,$cloudFileName)
+    public function __construct($accesskey,$secretkey,$bucket)
     {
-        list($ret,$err) = $this->uploadManager()->putFile($token,$cloudFileName,$file);
-        if($err != null){
-            $this->errorMsg = $err;
-            return false;
-        }
-        return $ret;
+        $this->accesskey = $accesskey;
+        $this->secretkey = $secretkey;
+        $this->bucket = $bucket;
     }
 
     /**
      * 上传对象
-     * @param string $token  上传令牌
-     * @param string $fileName 文件名称
-     * @param string|array|object $data
-     * @param string $mime 文件mimeType
-     * @return bool|array
+     * @param array|string|json|object $data 文件数据
+     * @param string $fileName  文件重命名
+     * @param string $mime mimetype
+     * @return array [$ret,$error = null]
      */
-    public function put($token,$fileName,$data,$mime)
+    public function put($data,$fileName = null,$mime = 'application/octet-stream')
     {
-
-        list($ret, $err) = $this->uploadManager()->put($token, $fileName, $data,null,$mime);
-
-        if($err != null){
-            $this->errorMsg = $err;
-            return false;
-        }
-        return $ret;
+         return $this->uploadManager()
+            ->put(
+                $this->auth()->token($this->bucket),
+                $fileName,
+                $data,
+                null,
+                $mime
+            );
     }
 
+    /**
+     * 上传文件
+     * @param string $fileName
+     * @param string $filePath 文件路劲
+     * @return array [$ret,$error = null]
+     */
+    public function upload(string $fileName,string $filePath)
+    {
+       return $this->uploadManager()
+           ->putFile(
+           $this->auth()->token($this->bucket),
+           $fileName,
+           $filePath
+       );
+    }
+
+    /**
+     * 删除文件
+     * @param string $fileName
+     * @return mixed 成功返回null,失败返回错误信息
+     */
+    public function delete(string $fileName)
+    {
+        return $this->bucketManager($this->auth(),$this->config())
+            ->delete($this->bucket,$fileName);
+    }
+
+    /**
+     * 批量删除文件
+     * @param array $files 文件数组
+     * @return array [$ret,$err] 执行成功$err为空
+     */
+    public function buildBatchDelete(array $files)
+    {
+        $bucketManager = $this->bucketManager($this->auth(),$this->config());
+        $ops = $bucketManager->buildBatchDelete($this->bucket,$files);
+        return $bucketManager->batch($ops);
+
+    }
+
+    private function bucketManager($auth,$config = null)
+    {
+        return new BucketManager($auth,$config);
+    }
+
+    private function config(){
+        return new Config();
+    }
+
+    /**
+     * 上传控制
+     * @return UploadManager
+     */
     private function uploadManager()
     {
         return new UploadManager();
     }
 
+    /**
+     * 鉴权
+     * @return Auth
+     */
+    private function auth()
+    {
+        $auth = new Auth();
+        return $auth->init($this->accesskey,$this->secretkey);
+    }
 
 }
